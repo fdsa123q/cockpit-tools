@@ -131,7 +131,22 @@ jobs:
           )"
           if [ -z "${PREVIOUS_TAG}" ]; then
             echo "No previous published release was found; refusing to stage without a legacy updater manifest."
-            exit 1
+            echo '{}' > legacy-latest.json
+          else
+            echo "Found previous release: ${PREVIOUS_TAG}. Trying to download latest.json..."
+            
+            if gh release download "${PREVIOUS_TAG}" --pattern "latest.json" --dir previous-release --clobber 2>/dev/null; then
+              if [ -s previous-release/latest.json ]; then
+                cp previous-release/latest.json legacy-latest.json
+                echo "Successfully preserved legacy latest.json from ${PREVIOUS_TAG}"
+              else
+                echo "Downloaded latest.json is empty. Generating initial manifest."
+                echo '{}' > legacy-latest.json
+              fi
+            else
+              echo "No latest.json found in the assets of ${PREVIOUS_TAG}. Generating initial manifest."
+              echo '{}' > legacy-latest.json
+            fi
           fi
 
           mkdir -p previous-release
